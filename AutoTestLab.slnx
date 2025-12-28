@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="D:/AutoTestLab/AutoTestLab/server/server.csproj" Id="92ca0edd-e036-4ff0-9063-b52b6b43bf0f" />
+  </Folder>
+  <Folder Name="/src/client/">
+    <Project Path="D:/AutoTestLab/AutoTestLab/client.Android/client.Android.csproj" />
+    <Project Path="D:/AutoTestLab/AutoTestLab/client.Browser/client.Browser.csproj" />
+    <Project Path="D:/AutoTestLab/AutoTestLab/client.Desktop/client.Desktop.csproj" />
+    <Project Path="D:/AutoTestLab/AutoTestLab/client.iOS/client.iOS.csproj" />
+    <Project Path="D:/AutoTestLab/AutoTestLab/client/client.csproj" />
+  </Folder>
+</Solution>
