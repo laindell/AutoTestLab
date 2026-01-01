@@ -9,4 +9,5 @@
     <Project Path="D:/AutoTestLab/AutoTestLab/client.iOS/client.iOS.csproj" />
     <Project Path="D:/AutoTestLab/AutoTestLab/client/client.csproj" />
   </Folder>
+  <Project Path="AutoTestLab.Shared/AutoTestLab.Shared.csproj" Id="78d8856d-09d9-4d68-96d0-d0199940c4e6" />
 </Solution>
