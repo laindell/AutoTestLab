@@ -1,0 +1,37 @@
+﻿syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+option csharp_namespace = "AutoTestLab.Shared.Protos";
+
+package Autorisation;
+
+service AutorisationService {
+	rpc SiginIn (SignInRequest) returns (AuthResponse);
+	rpc SignUp (SignUpRequest) returns (AuthResponse);
+	rpc RefreshToken (RefreshTokenRequest) returns (AuthResponse);
+}
+
+message SignInRequest {
+	string email = 1;
+	string password = 2;
+}
+
+message SignUpRequest {
+	string email = 1;
+	string password = 2;
+	string userName = 3;
+	string firstName = 4;
+	string lastName = 5;
+	string timezone = 6;
+}
+
+message RefreshTokenRequest {
+	string refreshToken = 1;
+}
+
+message AuthResponse {
+	string accessToken = 1;
+	string refreshToken = 2;
+	google.protobuf.Timestamp expiresIn = 3;
+}
