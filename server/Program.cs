@@ -1,20 +1,38 @@
-using server.Services;
+using Microsoft.EntityFrameworkCore;
+using server.Data;
+using StackExchange.Redis;
+using Azure.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+Console.WriteLine(
+    "CS = " + builder.Configuration.GetConnectionString("DefaultConnection")
+);
 
-builder.Services.AddStackExchangeRedisCache(options => {
-    options.Configuration = builder.Configuration.GetConnectionString("RedisConnection");
-    //додаю префікс до всіх ключів у Redis
-    options.InstanceName = "AutoTestLab_";
-});
+
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        o => o.UseVector()
+    )
+);
 
 builder.Services.AddGrpc();
+var redisOptions = await ConfigurationOptions.Parse(builder.Configuration["CacheConnection"]!).ConfigureForAzureWithTokenCredentialAsync(new DefaultAzureCredential());
+builder.Services.AddStackExchangeRedisCache(option =>
+{
+    option.ConfigurationOptions = redisOptions;
+});
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.Migrate();
+}
+
+app.MapGrpcService<AuthGrpcService>();
+app.MapGet("/", () => "AutoTestLab gRPC Server");
 
 app.Run();
