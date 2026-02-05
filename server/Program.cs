@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using server.Data;
 using StackExchange.Redis;
 using Azure.Identity;
+using server.Services.AI;
+using server.Services.RAG;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,7 +19,16 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     )
 );
 
+
+builder.Services.AddScoped<IAIService, OpenAiService>();
+
+builder.Services.AddScoped<RagService>();
+
+builder.Services.AddScoped<TestGenerator>();
+
 builder.Services.AddGrpc();
+
+// Налаштування Redis
 var redisOptions = await ConfigurationOptions.Parse(builder.Configuration["CacheConnection"]!).ConfigureForAzureWithTokenCredentialAsync(new DefaultAzureCredential());
 builder.Services.AddStackExchangeRedisCache(option =>
 {
@@ -26,6 +37,7 @@ builder.Services.AddStackExchangeRedisCache(option =>
 
 var app = builder.Build();
 
+// Автоматичне застосування міграцій при запуску
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -33,6 +45,9 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.MapGrpcService<AuthGrpcService>();
+// Тут також потрібно буде додати реєстрацію вашого майбутнього gRPC сервісу для тестів
+// app.MapGrpcService<TestGrpcService>();
+
 app.MapGet("/", () => "AutoTestLab gRPC Server");
 
 app.Run();
