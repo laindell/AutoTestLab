@@ -28,8 +28,20 @@ builder.Services.AddScoped<TestGenerator>();
 
 builder.Services.AddGrpc();
 
-// Налаштування Redis
-var redisOptions = await ConfigurationOptions.Parse(builder.Configuration["CacheConnection"]!).ConfigureForAzureWithTokenCredentialAsync(new DefaultAzureCredential());
+var connectionString = builder.Configuration["CacheConnection"];
+
+if (string.IsNullOrEmpty(connectionString))
+{
+    throw new InvalidOperationException("Redis connection string 'CacheConnection' is missing.");
+}
+
+var redisOptions = ConfigurationOptions.Parse(connectionString);
+
+if (redisOptions.EndPoints.Any(e => e.ToString()!.Contains("redis.cache.windows.net")))
+{
+    redisOptions = await redisOptions.ConfigureForAzureWithTokenCredentialAsync(new DefaultAzureCredential());
+}
+
 builder.Services.AddStackExchangeRedisCache(option =>
 {
     option.ConfigurationOptions = redisOptions;
@@ -45,9 +57,6 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.MapGrpcService<AuthGrpcService>();
-// Тут також потрібно буде додати реєстрацію вашого майбутнього gRPC сервісу для тестів
-// app.MapGrpcService<TestGrpcService>();
-
 app.MapGet("/", () => "AutoTestLab gRPC Server");
 
 app.Run();

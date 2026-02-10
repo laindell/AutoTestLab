@@ -7,48 +7,78 @@ namespace server.Services.AI
     {
         private readonly ChatClient _chatClient;
         private readonly EmbeddingClient _embeddingClient;
+        private readonly ILogger<OpenAiService> _logger;
 
-        public OpenAiService(IConfiguration configuration)
+        public OpenAiService(IConfiguration configuration, ILogger<OpenAiService> logger)
         {
-            var apiKey = configuration["OpenAI:ApiKey"]
-                         ?? throw new ArgumentNullException("OpenAI API Key is missing"); //TODO: додати логування помилок + згенерувати ключ 
+            _logger = logger;
 
-            // сlient initialization 
-            _chatClient = new ChatClient("gpt-4o", apiKey);
-            _embeddingClient = new EmbeddingClient("text-embedding-3-small", apiKey);
+            var apiKey = configuration["OpenAI:ApiKey"];
+
+            if (string.IsNullOrWhiteSpace(apiKey) || apiKey == "placeholder")
+            {
+                var errorMsg = "OpenAI API Key is missing. Please set 'OpenAI__ApiKey' environment variable.";
+                _logger.LogCritical(errorMsg);
+                throw new InvalidOperationException(errorMsg);
+            }
+
+            try
+            {
+                // сlient initialization 
+                _chatClient = new ChatClient("gpt-4o", apiKey);
+                _embeddingClient = new EmbeddingClient("text-embedding-3-small", apiKey);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogCritical(ex, "Failed to initialize OpenAI clients.");
+                throw;
+            }
         }
 
         public async Task<float[]> GetEmbeddingAsync(string text)
         {
-            // obtaining a vector representation of text for RAG
-            OpenAIEmbedding embedding = await _embeddingClient.GenerateEmbeddingAsync(text);
-            return embedding.ToFloats().ToArray();
+            try
+            {
+                OpenAIEmbedding embedding = await _embeddingClient.GenerateEmbeddingAsync(text);
+                return embedding.ToFloats().ToArray();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating embedding.");
+                throw;
+            }
         }
 
         public async Task<string> GenerateTestAsync(string context, string difficulty, int questionCount)
         {
-            // forming a prompt for generating a test based on the found context
-            string prompt = $"""
+            var prompt = $"""
             На основі наступного тексту документації, згенеруй тест.
             Складність: {difficulty}.
             Кількість питань: {questionCount}.
             Контекст: {context}
             """
             +
-            $$"""
+            """
             Відповідь надай СУВОРО у форматі JSON:
             [
               {
-                    "QuestionText": "Текст питання",
+                "QuestionText": "Текст питання",
                 "Options": ["Варіант 1", "Варіант 2", "Варіант 3", "Варіант 4"],
                 "CorrectOptionIndex": 0
               }
             ]
             """;
 
-            ChatCompletion completion = await _chatClient.CompleteChatAsync(prompt);
-            return completion.Content[0].Text;
+            try
+            {
+                ChatCompletion completion = await _chatClient.CompleteChatAsync(prompt);
+                return completion.Content[0].Text;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating test.");
+                throw;
+            }
         }
-
     }
 }
