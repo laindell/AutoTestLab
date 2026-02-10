@@ -24,10 +24,10 @@ namespace server.Services.AI
 
             try
             {
-                // сlient initialization 
-                _chatClient = new ChatClient("gpt-4o", apiKey);
-                _embeddingClient = new EmbeddingClient("text-embedding-3-small", apiKey);
-            }
+            // сlient initialization 
+            _chatClient = new ChatClient("gpt-4o", apiKey);
+            _embeddingClient = new EmbeddingClient("text-embedding-3-small", apiKey);
+        }
             catch (Exception ex)
             {
                 _logger.LogCritical(ex, "Failed to initialize OpenAI clients.");
@@ -39,9 +39,9 @@ namespace server.Services.AI
         {
             try
             {
-                OpenAIEmbedding embedding = await _embeddingClient.GenerateEmbeddingAsync(text);
-                return embedding.ToFloats().ToArray();
-            }
+            OpenAIEmbedding embedding = await _embeddingClient.GenerateEmbeddingAsync(text);
+            return embedding.ToFloats().ToArray();
+        }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error generating embedding.");
@@ -62,7 +62,7 @@ namespace server.Services.AI
             Відповідь надай СУВОРО у форматі JSON:
             [
               {
-                "QuestionText": "Текст питання",
+                    "QuestionText": "Текст питання",
                 "Options": ["Варіант 1", "Варіант 2", "Варіант 3", "Варіант 4"],
                 "CorrectOptionIndex": 0
               }
@@ -71,9 +71,9 @@ namespace server.Services.AI
 
             try
             {
-                ChatCompletion completion = await _chatClient.CompleteChatAsync(prompt);
-                return completion.Content[0].Text;
-            }
+            ChatCompletion completion = await _chatClient.CompleteChatAsync(prompt);
+            return completion.Content[0].Text;
+        }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error generating test.");
