@@ -30,6 +30,7 @@ services:
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=autotestlab;Username=user;Password=${POSTGRES_PASSWORD}
       - CacheConnection=redis:6379
       - OpenAI__ApiKey=${OPENAI_API_KEY}
+      - Jwt__Key=${JWT_SECRET_KEY}
 
 volumes:
   pgdata:

@@ -58,7 +58,7 @@ namespace server.Services.AI
             Контекст: {context}
             """
             +
-            """
+           $$"""
             Відповідь надай СУВОРО у форматі JSON:
             [
               {

@@ -2,64 +2,117 @@
 using Grpc.Core;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using server.Data;  
+using server.Data;
 using server.Models;
-using server.Services.Tokens;  
+using server.Services.Tokens;
 
-public class AuthGrpcService : AutorisationService.AutorisationServiceBase
+namespace server.Services.Grpc
 {
-    private readonly ApplicationDbContext _context;
-    private readonly IPasswordHasher<User> _passwordHasher;
-    private readonly ITokenService _tokenService;
-    private readonly ILogger<AuthGrpcService> _logger;
-
-    public AuthGrpcService(ApplicationDbContext context, IPasswordHasher<User> passwordHasher, ITokenService tokenService, ILogger<AuthGrpcService> logger)
+    public class AuthGrpcService : AutorisationService.AutorisationServiceBase
     {
-        _context = context;
-        _passwordHasher = passwordHasher;
-        _tokenService = tokenService;
-        _logger = logger;
-    }
+        private readonly ApplicationDbContext _context;
+        private readonly IPasswordHasher<User> _passwordHasher;
+        private readonly ITokenService _tokenService;
+        private readonly ILogger<AuthGrpcService> _logger;
 
-    public override async Task<AuthResponse> SiginIn(SignInRequest request, ServerCallContext context)
-    {
-        _logger.LogInformation("->SignIn Request received for Email: {Email}", request.Email);
-
-        // Пошук користувача в базі даних за email
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
-
-        if (user == null)
+        public AuthGrpcService(ApplicationDbContext context, IPasswordHasher<User> passwordHasher, ITokenService tokenService, ILogger<AuthGrpcService> logger)
         {
-            // Якщо користувача не знайдено, повертаємо помилку Unauthenticated
-            throw new RpcException(new Status(StatusCode.Unauthenticated, "Invalid email or password."));
+            _context = context;
+            _passwordHasher = passwordHasher;
+            _tokenService = tokenService;
+            _logger = logger;
         }
 
-        // Верифікація пароля
-        var passwordVerificationResult = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
-
-        if (passwordVerificationResult == PasswordVerificationResult.Failed)
+        public override async Task<AuthResponse> SiginIn(SignInRequest request, ServerCallContext context)
         {
-            // Якщо пароль невірний, повертаємо помилку Unauthenticated
-            throw new RpcException(new Status(StatusCode.Unauthenticated, "Invalid email or password."));
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+
+            if (user == null)
+            {
+                throw new RpcException(new Status(StatusCode.Unauthenticated, "Invalid email or password."));
+            }
+
+            var verificationResult = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
+
+            if (verificationResult == PasswordVerificationResult.Failed)
+            {
+                throw new RpcException(new Status(StatusCode.Unauthenticated, "Invalid email or password."));
+            }
+
+            return await GenerateAndSaveTokensAsync(user);
         }
 
-        //  Генерація JWT та Refresh токенів
-        var accessToken = _tokenService.GenerateAccessToken(user);
-        var refreshToken = _tokenService.GenerateRefreshToken();
-
-        // Оновлення refresh токена в БД та збереження
-        user.RefreshToken = refreshToken;
-        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7); // Встановлюємо термін дії,  7 днів
-        await _context.SaveChangesAsync();
-
-        // Повернення відповіді з токенами
-        return new AuthResponse
+        public override async Task<AuthResponse> SignUp(SignUpRequest request, ServerCallContext context)
         {
-            AccessToken = accessToken,
-            RefreshToken = refreshToken,
-            ExpiresIn = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(DateTime.UtcNow.AddHours(1)) // Термін дії access токена
-        };
-    }
+            // ensure email and username are unique
+            var existingUser = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == request.Email || u.Username == request.UserName);
 
-    // Тут також мають бути реалізовані методи SignUp та RefreshToken для повної функціональності
+            if (existingUser != null)
+            {
+                if (existingUser.Email == request.Email)
+                    throw new RpcException(new Status(StatusCode.AlreadyExists, "User with this email already exists."));
+
+                if (existingUser.Username == request.UserName)
+                    throw new RpcException(new Status(StatusCode.AlreadyExists, "User with this username already exists."));
+            }
+
+            // create new user
+            var newUser = new User
+            {
+                Id = Guid.NewGuid(),
+                Email = request.Email,
+                Username = request.UserName,
+                FirstName = request.FirstName ?? "", 
+                LastName = request.LastName ?? "",   
+                TimeRegister = DateTime.UtcNow,      
+                Role = "User"
+            };
+
+            // Хешування пароля
+            newUser.PasswordHash = _passwordHasher.HashPassword(newUser, request.Password);
+
+            _context.Users.Add(newUser);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("User registered: {Email}, Time: {Time}", newUser.Email, newUser.TimeRegister);
+
+            return await GenerateAndSaveTokensAsync(newUser);
+        }
+
+        public override async Task<AuthResponse> RefreshToken(RefreshTokenRequest request, ServerCallContext context)
+        {
+            if (string.IsNullOrEmpty(request.RefreshToken))
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "Refresh token is required."));
+            }
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.RefreshToken == request.RefreshToken);
+
+            if (user == null || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
+            {
+                throw new RpcException(new Status(StatusCode.Unauthenticated, "Invalid or expired refresh token."));
+            }
+
+            return await GenerateAndSaveTokensAsync(user);
+        }
+
+        private async Task<AuthResponse> GenerateAndSaveTokensAsync(User user)
+        {
+            var accessToken = _tokenService.GenerateAccessToken(user);
+            var refreshToken = _tokenService.GenerateRefreshToken();
+
+            user.RefreshToken = refreshToken;
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+
+            await _context.SaveChangesAsync();
+
+            return new AuthResponse
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken,
+                ExpiresIn = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(DateTime.UtcNow.AddMinutes(60)) 
+            };
+        }
+    }
 }

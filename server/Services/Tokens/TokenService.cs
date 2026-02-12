@@ -1,18 +1,57 @@
-﻿using server.Models;
-using server.Services.Tokens;
+﻿using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
+using Microsoft.IdentityModel.Tokens;
+using server.Models;
 
-namespace Server.Services;
-
-public class TokenService : ITokenService
+namespace server.Services.Tokens
 {
-    public string GenerateAccessToken(User user)
+    public class TokenService : ITokenService
     {
-        // TODO: тимчасова заглушка
-        return "ACCESS_TOKEN";
-    }
+        private readonly IConfiguration _configuration;
 
-    public string GenerateRefreshToken()
-    {
-        return Guid.NewGuid().ToString();
+        public TokenService(IConfiguration configuration)
+        {
+            _configuration = configuration;
+        }
+
+        public string GenerateAccessToken(User user)
+        {
+            var jwtSettings = _configuration.GetSection("Jwt");
+            var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]!);
+
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Role, user.Role),
+                new Claim("FirstName", user.FirstName), 
+                new Claim("LastName", user.LastName)
+            };
+
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(claims),
+                Expires = DateTime.UtcNow.AddMinutes(double.Parse(jwtSettings["DurationInMinutes"]!)),
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256),
+                Issuer = jwtSettings["Issuer"],
+                Audience = jwtSettings["Audience"]
+            };
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+
+            return tokenHandler.WriteToken(token);
+        }
+
+        public string GenerateRefreshToken()
+        {
+            var randomNumber = new byte[32];
+            using var rng = RandomNumberGenerator.Create();
+            rng.GetBytes(randomNumber);
+            return Convert.ToBase64String(randomNumber);
+        }
     }
 }
