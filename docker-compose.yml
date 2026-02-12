@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: autotestlab
       POSTGRES_USER: user
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_PASSWORD: "30127868"
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
