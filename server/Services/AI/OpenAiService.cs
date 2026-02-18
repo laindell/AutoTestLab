@@ -49,23 +49,24 @@ namespace server.Services.AI
             }
         }
 
-        public async Task<string> GenerateTestAsync(string context, string difficulty, int questionCount)
+        public async Task<string> GenerateTestAsync(string context, string testlanguage, string difficulty, int questionCount)
         {
             var prompt = $"""
-            На основі наступного тексту документації, згенеруй тест.
-            Складність: {difficulty}.
-            Кількість питань: {questionCount}.
-            Контекст: {context}
+            Based on the following documentation text, generate a test.
+            Difficulty: {difficulty}.
+            Number of questions: {questionCount}.
+            Context: {context}
+            The question text must be in {testlanguage}.
             """
             +
            $$"""
-            Відповідь надай СУВОРО у форматі JSON:
+            Please provide your answer STRICTLY in JSON format:
             [
-              {
-                    "QuestionText": "Текст питання",
-                "Options": ["Варіант 1", "Варіант 2", "Варіант 3", "Варіант 4"],
-                "CorrectOptionIndex": 0
-              }
+                {
+                    "QuestionText": "Question text",
+                    "Options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+                    "CorrectOptionIndex": 0
+                }
             ]
             """;
 

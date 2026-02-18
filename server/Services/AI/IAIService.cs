@@ -3,6 +3,6 @@
     public interface IAIService
     {
         Task<float[]> GetEmbeddingAsync(string text);
-        Task<string> GenerateTestAsync(string context, string difficulty, int questionCount);
+        Task<string> GenerateTestAsync(string context, string testlanguage, string difficulty, int questionCount);
     }
 }
