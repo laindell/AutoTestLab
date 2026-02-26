@@ -13,10 +13,8 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-	</ItemGroup>
-
-	<ItemGroup>
 		<Protobuf Include="Protos\Autorisation.proto" GrpcServices="Both" />
+		<Protobuf Include="Protos\App.proto" GrpcServices="Both" />
 	</ItemGroup>
 
 </Project>

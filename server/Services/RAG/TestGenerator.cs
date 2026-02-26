@@ -39,7 +39,7 @@ namespace server.Services.RAG
                         test.Questions.Add(
                         new TestQuestion
                             {
-                                Text = qDto.QuestionText,
+                                QuestionText = qDto.QuestionText,
                                 // Припускаємо, що Options зберігаються як JSON string або окрема таблиця. 
                                 // Тут для прикладу з'єднуємо в рядок, але краще мати окрему сутність AnswerOption
                                 OptionsJson = JsonSerializer.Serialize(qDto.Options),

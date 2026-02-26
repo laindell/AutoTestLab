@@ -27,8 +27,8 @@ namespace server.Services.Tokens
                 new Claim(ClaimTypes.Name, user.Username),
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.Role, user.Role),
-                new Claim("FirstName", user.FirstName), 
-                new Claim("LastName", user.LastName)
+                new Claim(ClaimTypes.GivenName, user.FirstName),
+                new Claim(ClaimTypes.Surname, user.LastName)
             };
 
             var tokenDescriptor = new SecurityTokenDescriptor

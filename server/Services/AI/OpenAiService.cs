@@ -15,6 +15,7 @@ namespace server.Services.AI
 
             var apiKey = configuration["OpenAI:ApiKey"];
 
+
             if (string.IsNullOrWhiteSpace(apiKey) || apiKey == "placeholder")
             {
                 var errorMsg = "OpenAI API Key is missing. Please set 'OpenAI__ApiKey' environment variable.";

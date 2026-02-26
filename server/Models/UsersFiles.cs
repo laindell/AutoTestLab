@@ -1,6 +1,6 @@
 ﻿namespace server.Models
 {
-    public enum FileStatus { Uploaded, Processing, Ready, Failed }
+    public enum FileStatus { Uploaded, Processing, Ready, Failed, Error }
 
     public class UsersFiles
     {

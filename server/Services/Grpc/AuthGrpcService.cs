@@ -46,7 +46,7 @@ namespace server.Services.Grpc
         {
             // ensure email and username are unique
             var existingUser = await _context.Users
-                .FirstOrDefaultAsync(u => u.Email == request.Email || u.Username == request.UserName);
+                .FirstAsync(u => u.Email == request.Email || u.Username == request.UserName);
 
             if (existingUser != null)
             {
@@ -69,7 +69,7 @@ namespace server.Services.Grpc
                 Role = "User"
             };
 
-            // Хешування пароля
+            // password hashing
             newUser.PasswordHash = _passwordHasher.HashPassword(newUser, request.Password);
 
             _context.Users.Add(newUser);
