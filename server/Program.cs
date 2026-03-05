@@ -58,7 +58,9 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.MapGrpcService<AuthGrpcService>();
-// Тут також потрібно буде додати реєстрацію вашого майбутнього gRPC сервісу для тестів
+
+app.MapGrpcService<FileGrpcService>();
+
 app.MapGrpcService<TestGrpcService>();
 
 app.MapGet("/", () => "AutoTestLab gRPC Server");

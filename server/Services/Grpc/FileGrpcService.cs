@@ -6,6 +6,8 @@ using server.Data;
 using server.Models;
 using server.Services.RAG;
 using System.Security.Claims;
+using System.Text;
+using UglyToad.PdfPig;
 
 namespace server.Services.Grpc
 {
@@ -15,15 +17,18 @@ namespace server.Services.Grpc
         private readonly ApplicationDbContext _context;
         private readonly ILogger<FileGrpcService> _logger;
         private readonly IServiceScopeFactory _scopeFactory;
+        private readonly IWebHostEnvironment _env;
 
         public FileGrpcService(
             ApplicationDbContext context,
             ILogger<FileGrpcService> logger,
-            IServiceScopeFactory scopeFactory)
+            IServiceScopeFactory scopeFactory,
+            IWebHostEnvironment env)
         {
             _context = context;
             _logger = logger;
             _scopeFactory = scopeFactory;
+            _env = env;
         }
 
         public override async Task<UploadFileResponse> UploadFile(IAsyncStreamReader<UploadFileRequest> requestStream, ServerCallContext context)
@@ -43,12 +48,28 @@ namespace server.Services.Grpc
                     await memoryStream.WriteAsync(chunk.Content.ToByteArray());
             }
 
+            var uploadsFolder = Path.Combine(_env.ContentRootPath, "Uploads");
+            if (!Directory.Exists(uploadsFolder))
+            {
+                Directory.CreateDirectory(uploadsFolder);
+            }
+            
+            var sanitizedFileName = Path.GetFileName(fileName); 
+
+            if (string.IsNullOrEmpty(sanitizedFileName))
+            {
+                sanitizedFileName = "Invalid fail name";
+            }
+
+            var uniqueFileName = $"{Guid.NewGuid()}_{fileName}";
+            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
             // Зберігаємо запис про файл зі статусом Processing
             var fileEntity = new UsersFiles
             {
                 UserId = userId,
                 FileName = fileName,
-                FilePath = "IN_MEMORY_ONLY", // TODO: Реалізувати постійне сховище (наприклад, диск або S3)
+                FilePath = filePath,
                 UploadedAt = DateTime.UtcNow,
                 Status = FileStatus.Processing
             };
@@ -56,11 +77,48 @@ namespace server.Services.Grpc
             _context.UsersFiles.Add(fileEntity);
             await _context.SaveChangesAsync();
 
-            memoryStream.Position = 0;
-            using var reader = new StreamReader(memoryStream);
-            var textContent = await reader.ReadToEndAsync();
+            try
+            {
+                await File.WriteAllBytesAsync(filePath, memoryStream.ToArray());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to save file {FileName}", fileName);
+                fileEntity.Status = FileStatus.Error;
+                await _context.SaveChangesAsync();
+                return new UploadFileResponse { FileId = fileEntity.Id, Status = "Error saving file" };
+            }
 
-  
+            string textContent = string.Empty;
+            var extension = Path.GetExtension(fileName).ToLower();
+
+            try
+            {
+                if (extension == ".pdf")
+                {
+                    using var pdfDocument = PdfDocument.Open(memoryStream.ToArray());
+                    var textBuilder = new StringBuilder();
+                    foreach (var page in pdfDocument.GetPages())
+                    {
+                        textBuilder.AppendLine(page.Text);
+                    }
+                    textContent = textBuilder.ToString();
+                }
+                else
+                {
+                    memoryStream.Position = 0;
+                    using var reader = new StreamReader(memoryStream);
+                    textContent = await reader.ReadToEndAsync();
+                }
+            }
+            catch (Exception ex)
+            { 
+                _logger.LogError(ex, "Failed to extract text from file {FileName}", fileName);
+                fileEntity.Status = FileStatus.Error;
+                await _context.SaveChangesAsync();
+                return new UploadFileResponse { FileId = fileEntity.Id, Status = "Error parsing file format" };
+            }
+
             _ = Task.Run(async () =>
             {
      

@@ -1,11 +1,12 @@
 ﻿using AutoTestLab.Shared.Protos;
 using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using server.Data;
 using server.Models;
 using server.Services.AI;
 using server.Services.RAG;
-using System.Security.Claims; 
+using System.Security.Claims;
 using System.Text.Json;
 
 namespace server.Services.Grpc
@@ -92,6 +93,36 @@ namespace server.Services.Grpc
                 qDto.Options.AddRange(q.Options);
                 response.Questions.Add(qDto);
             }
+
+            return response;
+        }
+
+        // отримання списку тестів користувача
+        public override async Task<TestListResponse> GetMyTests(Google.Protobuf.WellKnownTypes.Empty request, ServerCallContext context)
+        {
+            // ID користувача з токена
+            var userIdString = context.GetHttpContext().User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdString))
+            {
+                throw new RpcException(new Status(StatusCode.Unauthenticated, "User ID not found in token."));
+            }
+
+            var userId = Guid.Parse(userIdString);
+
+            // Шукає тести створені цим користувачем і відразу мапимо у DTO з App.proto
+            var tests = await _context.Tests
+                .Where(t => t.CreatorId == userId)
+                .Select(t => new TestSummaryDto
+                {
+                    Id = t.Id,
+                    Name = t.Name,
+                    Description = t.Description ?? "" 
+                })
+                .ToListAsync();
+
+            // складає відповідь
+            var response = new TestListResponse();
+            response.Tests.AddRange(tests);
 
             return response;
         }
