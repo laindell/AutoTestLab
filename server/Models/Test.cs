@@ -13,9 +13,10 @@
         public int TimeLimitSeconds { get; set; } = 600; 
         public Guid CreatorId { get; set; } 
         public User Creator { get; set; } = null!;
-        public int? SourceFileId { get; set; } 
+        public int? SourceFileId { get; set; }
+
+        public ICollection<TestGroupShare> SharedGroups { get; set; } = new List<TestGroupShare>();
         public ICollection<TestQuestion> Questions { get; set; } = new List<TestQuestion>();
         public ICollection<GradeForTheTest> Grades { get; set; } = new List<GradeForTheTest>();
-        public int? GroupId { get; set; }
     }
 }

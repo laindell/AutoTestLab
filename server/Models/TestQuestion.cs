@@ -7,7 +7,7 @@
         public string QuestionText { get; set; } = null!;
         public string OptionsJson { get; set; } = null!; 
         public List<string> Options { get; set; } = new List<string>();
-
+        public Test Test { get; set; } = null!;
         public int CorrectOptionIndex { get; set; } 
     }
 }

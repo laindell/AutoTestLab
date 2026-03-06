@@ -66,3 +66,33 @@ message TestSummaryDto {
   string name = 2;
   string description = 3;
 }
+
+service GroupService {
+  rpc CreateGroup (CreateGroupRequest) returns (GroupResponse);
+  rpc JoinGroup (JoinGroupRequest) returns (GroupResponse);
+  rpc GetGroupTests (GetGroupTestsRequest) returns (TestListResponse);
+  rpc ShareTest (ShareTestRequest) returns (google.protobuf.Empty);
+}
+
+message CreateGroupRequest {
+  string name = 1;
+}
+
+message JoinGroupRequest {
+  string join_code = 1;
+}
+
+message GroupResponse {
+  int32 group_id = 1;
+  string name = 2;
+  string join_code = 3;
+}
+
+message GetGroupTestsRequest {
+  int32 group_id = 1;
+}
+
+message ShareTestRequest {
+  int32 test_id = 1;
+  int32 group_id = 2;
+}

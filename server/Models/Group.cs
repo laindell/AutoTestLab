@@ -4,7 +4,9 @@
     {
         public int Id { get; set; }
         public string Name { get; set; } = null!;
-        public string JoinCode { get; set; } = Guid.NewGuid().ToString().Substring(0, 6).ToUpper();
+        [System.ComponentModel.DataAnnotations.Required]
+        public string JoinCode { get; set; } = string.Empty;
+
         public Guid OwnerId { get; set; }
         public User Owner { get; set; } = null!;
         public ICollection<GroupMember> Members { get; set; } = new List<GroupMember>();

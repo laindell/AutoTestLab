@@ -61,6 +61,8 @@ app.MapGrpcService<AuthGrpcService>();
 
 app.MapGrpcService<FileGrpcService>();
 
+app.MapGrpcService<GroupGrpcService>();
+
 app.MapGrpcService<TestGrpcService>();
 
 app.MapGet("/", () => "AutoTestLab gRPC Server");
