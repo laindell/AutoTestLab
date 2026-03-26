@@ -46,7 +46,7 @@ namespace server.Services.Grpc
         {
             // ensure email and username are unique
             var existingUser = await _context.Users
-                .FirstAsync(u => u.Email == request.Email || u.Username == request.UserName);
+                .FirstOrDefaultAsync(u => u.Email == request.Email || u.Username == request.UserName);
 
             if (existingUser != null)
             {

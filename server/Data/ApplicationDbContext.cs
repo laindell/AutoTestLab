@@ -12,7 +12,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Group> Groups => Set<Group>();
     public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
     public DbSet<TestGroupShare> TestGroupShares { get; set; }
-
+    public DbSet<GradeForTheTest> GradesForTheTests => Set<GradeForTheTest>();
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options) { }
 

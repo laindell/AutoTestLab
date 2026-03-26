@@ -36,6 +36,8 @@ message FileDto {
 service TestService {
   rpc GenerateTest (GenerateTestRequest) returns (TestResponse);
   rpc GetMyTests (google.protobuf.Empty) returns (TestListResponse);
+  rpc GetTestForTaking (GetTestRequest) returns (TakeTestResponse);
+  rpc SubmitTestAnswers (SubmitTestRequest) returns (SubmitTestResponse);
 }
 
 message GenerateTestRequest {
@@ -95,4 +97,38 @@ message GetGroupTestsRequest {
 message ShareTestRequest {
   int32 test_id = 1;
   int32 group_id = 2;
+}
+
+message GetTestRequest {
+  int32 test_id = 1;
+}
+
+message TakeTestResponse {
+  int32 test_id = 1;
+  string name = 2;
+  string description = 3;
+  int32 time_limit_seconds = 4;
+  repeated TakeTestQuestionDto questions = 5;
+}
+
+message TakeTestQuestionDto {
+  int32 question_id = 1;
+  string question_text = 2;
+  repeated string options = 3;
+}
+
+message SubmitTestRequest {
+  int32 test_id = 1;
+  repeated UserAnswerDto answers = 2;
+}
+
+message UserAnswerDto {
+  int32 question_id = 1;
+  int32 selected_option_index = 2;
+}
+
+message SubmitTestResponse {
+  double grade = 1;
+  int32 correct_answers = 2;
+  int32 total_questions = 3;
 }
